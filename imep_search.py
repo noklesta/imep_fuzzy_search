@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.parse
 import uuid
 
 #######################################################################################################
@@ -21,7 +22,7 @@ def application(environ, start_response):
     status = '200 OK'
     response_headers = [('Content-type', 'text/plain')]
 
-    query = environ['QUERY_STRING'] 
+    query = urllib.parse.unquote(environ['QUERY_STRING'])
     if len(query) == 0:
         status = '500 Internal Server Error'
         output = b"Missing query!"
