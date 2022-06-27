@@ -10,11 +10,12 @@ import uuid
 #######################################################################################################
 
 NUM_CANDIDATES = 100
-NUM_SELECTIONS = 10
+NUM_SELECTIONS = 20
 
 SRLIM_DIR = '/tekstlab/imep/srilm-1.7.3/bin/i686-m64/'
 
-MODEL_DIR = '/tekstlab/imep/binary_models'
+#MODEL_DIR = '/tekstlab/imep/binary_models/incipits'
+MODEL_DIR = '/tekstlab/imep/models/incipits'
 
 ppl1_pattern = re.compile('ppl1=\s*(\S+)')
 
@@ -53,7 +54,7 @@ def application(environ, start_response):
 
     # Then run all incipits against the query model
     process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', query_model_file,
-                             '-no-sos', '-no-eos', '-debug', '1', '-ppl', '/tekstlab/imep/incipits/all_incipits.txt'], 
+                             '-no-sos', '-no-eos', '-debug', '1', '-ppl', '/tekstlab/imep/incipits.text'], 
                              stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
 
     output_lines = process.stdout.splitlines()
@@ -77,9 +78,11 @@ def application(environ, start_response):
     # Select the best candidates for use in the proper testing procedure
     candidates = incipit_numbers_and_pp1s[:NUM_CANDIDATES]
 
-    #print('reverse:')
-    #for candidate in candidates:
-    #    print(candidate)
+    #with open("/tmp/anders_log.txt", "w") as external_file:
+    #    print('reverse:', file=external_file)
+    #    for candidate in candidates:
+    #        print(candidate, file=external_file)
+    #    external_file.close()
 
     # Now run the query text against each of the NUM_CANDIDATES incipits with the lowest perplexity value
     # in the reversed matching process above, and return the NUM_SELECTIONS ones with the lowest value
@@ -87,10 +90,21 @@ def application(environ, start_response):
     candidates_with_proper_pp1s = []
     for incipit_info in candidates:
         incipit_number = incipit_info[0]
-        process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.bin.lm'.format(MODEL_DIR, incipit_number),
+        #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.bin.lm'.format(MODEL_DIR, incipit_number),
+        #                         '-no-sos', '-no-eos', '-ppl', query_file], 
+        #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
+        process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.lm'.format(MODEL_DIR, incipit_number),
                                  '-no-sos', '-no-eos', '-ppl', query_file], 
                                  stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
+        #with open("/tmp/anders.txt", "a") as external_file:
+        #    print(incipit_number, file=external_file)
+        #    print(process.stdout.splitlines(), file=external_file)
+        #    external_file.close()
+        #if len(process.stdout.splitlines()) >= 2:
         m = re.search(ppl1_pattern, process.stdout.splitlines()[1])
+        #with open("/tmp/anders.txt", "a") as external_file:
+        #    print(f'{incipit_number}, {m.group(1)}', file=external_file)
+        #    external_file.close()
         # Append a tuple containing the incipit number and ppl1 value from the proper matching of the query text against this incipit
         candidates_with_proper_pp1s.append((incipit_number, m.group(1)))
         
