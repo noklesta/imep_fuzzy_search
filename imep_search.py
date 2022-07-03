@@ -15,7 +15,7 @@ NUM_SELECTIONS = 20
 SRLIM_DIR = '/tekstlab/imep/srilm-1.7.3/bin/i686-m64/'
 
 #MODEL_DIR = '/tekstlab/imep/binary_models/incipits'
-MODEL_DIR = '/tekstlab/imep/models/incipits'
+MODEL_DIR = '/tekstlab/imep/models'
 
 ppl1_pattern = re.compile('ppl1=\s*(\S+)')
 
@@ -38,7 +38,7 @@ def application(environ, start_response):
     # Separate the characters in the query by spaces and the words by '<w>' tags, and write it to file
     with open(query_file, 'w') as f:
         lines = map(lambda word: " ".join(word), re.sub('query=', '', query).split())
-        query = " <w> ".join(lines)
+        query = "<w> " + " <w> ".join(lines) + " <w>"
         f.write(query)
 
     # In a single invocation, ngram is able to run several texts against a single language model, but not a single 
