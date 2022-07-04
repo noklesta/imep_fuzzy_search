@@ -61,6 +61,20 @@ def application(environ, start_response):
     all_chunks = [ output_lines[i:i + 4] for i in range(0, len(output_lines), 4) ]
     chunks = all_chunks[:len(all_chunks)-1]
 
+    ent1 = re.compile('&thorn;')
+    ent2 = re.compile('&eth;')
+    ent3 = re.compile('&wynn;')
+    ent4 = re.compile('&yogh;')
+    ent5 = re.compile('&aelig;')
+
+    def replace_entities(candidate):
+        c = re.sub(ent1, 'þ', candidate)
+        c = re.sub(ent2, 'ð', c)
+        c = re.sub(ent3, 'ƿ', c)
+        c = re.sub(ent4, 'ȝ', c)
+        c = re.sub(ent5, 'æ', c)
+        return c
+
     def process_chunk(chunk_number, chunk):
         ppl1 = re.search(ppl1_pattern, chunk[2]).group(1)
 
@@ -70,9 +84,27 @@ def application(environ, start_response):
 
         return (chunk_number, ppl1)
 
-    incipit_numbers_and_pp1s = [ process_chunk(chunk_index + 1, chunk) for (chunk_index, chunk) in enumerate(chunks) ]
+    blank_pattern = re.compile('\s+')
+    word_sep_pattern = re.compile('<w>')
 
-    # Sort all incipits based on thei ppl1 values from the reverse matching
+    # Checks the length of a line in incipits.text
+    def long_enough(candidate):
+        cleaned_text = re.sub(word_sep_pattern, ' ', re.sub(blank_pattern, '', replace_entities(candidate))).strip()
+        if len(cleaned_text) < 15:
+            #with open("/tmp/anders.txt", "a", encoding='utf-8') as f:
+            #    print(f'cand: {candidate}, cleaned: AAA{cleaned_text}BBB', file=f)
+            return False
+        else: return True
+
+
+    with open('/tekstlab/imep/incipits.text', 'r', encoding='utf-8') as f:
+        incipit_lines = f.readlines()
+
+    incipit_numbers_and_pp1s = [ process_chunk(chunk_index + 1, chunk)
+                                    for (chunk_index, chunk) in enumerate(chunks)
+                                    if long_enough(incipit_lines[chunk_index]) ]
+
+    # Sort all incipits based on their ppl1 values from the reverse matching
     incipit_numbers_and_pp1s.sort(key=lambda elm: float(elm[1]))
 
     # Select the best candidates for use in the proper testing procedure
