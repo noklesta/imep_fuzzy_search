@@ -111,9 +111,9 @@ def application(environ, start_response):
     # Sort the candidates based on their proper ppl1 values
     candidates_with_proper_pp1s.sort(key=lambda elm: float(elm[1]))
 
-    #print('proper:')
-    #for candidate in candidates_with_proper_pp1s:
-    #    print(candidate)
+    #with open("/tmp/anders.txt", "w") as external_file:
+    #    for candidate in candidates_with_proper_pp1s:
+    #        print(candidate, file=external_file)
 
     selected = list(map(lambda candidate: candidate[0], candidates_with_proper_pp1s))[:NUM_SELECTIONS]
 
