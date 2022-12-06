@@ -36,7 +36,7 @@ def application(environ, start_response):
     query_model_file = "/tmp/imep_query_{}.lm".format(query_id)
 
     # Separate the characters in the query by spaces and the words by '<w>' tags, and write it to file
-    with open(query_file, 'w') as f:
+    with open(query_file, 'w', encoding='utf-8') as f:
         lines = map(lambda word: " ".join(word), re.sub('query=', '', query).split())
         query = "<w> " + " <w> ".join(lines) + " <w>"
         f.write(query)
@@ -110,7 +110,7 @@ def application(environ, start_response):
     # Select the best candidates for use in the proper testing procedure
     candidates = incipit_numbers_and_pp1s[:NUM_CANDIDATES]
 
-    #with open("/tmp/anders_log.txt", "w") as external_file:
+    #with open("/tmp/anders_log.txt", "w", encoding='utf-8') as external_file:
     #    print('reverse:', file=external_file)
     #    for candidate in candidates:
     #        print(candidate, file=external_file)
@@ -128,13 +128,13 @@ def application(environ, start_response):
         process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.lm'.format(MODEL_DIR, incipit_number),
                                  '-no-sos', '-no-eos', '-ppl', query_file], 
                                  stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
-        #with open("/tmp/anders.txt", "a") as external_file:
+        #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
         #    print(incipit_number, file=external_file)
         #    print(process.stdout.splitlines(), file=external_file)
         #    external_file.close()
         #if len(process.stdout.splitlines()) >= 2:
         m = re.search(ppl1_pattern, process.stdout.splitlines()[1])
-        #with open("/tmp/anders.txt", "a") as external_file:
+        #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
         #    print(f'{incipit_number}, {m.group(1)}', file=external_file)
         #    external_file.close()
         # Append a tuple containing the incipit number and ppl1 value from the proper matching of the query text against this incipit
@@ -143,7 +143,7 @@ def application(environ, start_response):
     # Sort the candidates based on their proper ppl1 values
     candidates_with_proper_pp1s.sort(key=lambda elm: float(elm[1]))
 
-    #with open("/tmp/anders.txt", "w") as external_file:
+    #with open("/tmp/anders.txt", "w", encoding='utf-8') as external_file:
     #    for candidate in candidates_with_proper_pp1s:
     #        print(candidate, file=external_file)
 
