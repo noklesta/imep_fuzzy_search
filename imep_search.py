@@ -16,6 +16,7 @@ SRLIM_DIR = '/tekstlab/imep/srilm-1.7.3/bin/i686-m64/'
 
 #MODEL_DIR = '/tekstlab/imep/binary_models/incipits'
 MODEL_DIR = '/tekstlab/imep/models'
+NONEVENTS_FILE = '/tekstlab/imep/nonevents.text'
 
 ppl1_pattern = re.compile('ppl1=\s*(\S+)')
 
@@ -123,10 +124,18 @@ def application(environ, start_response):
     for incipit_info in candidates:
         incipit_number = incipit_info[0]
         #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.bin.lm'.format(MODEL_DIR, incipit_number),
-        #                         '-no-sos', '-no-eos', '-ppl', query_file], 
+        #                         '-no-sos', '-no-eos', '-ppl', query_file],
         #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
-        process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.lm'.format(MODEL_DIR, incipit_number),
-                                 '-no-sos', '-no-eos', '-ppl', query_file], 
+        #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.lm'.format(MODEL_DIR, incipit_number),
+        #                         '-no-sos', '-no-eos', '-ppl', query_file],
+        #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
+        process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos', '-nonevents', NONEVENTS_FILE,
+                                 '-lm', '{}/{}_5.lm'.format(MODEL_DIR, incipit_number), '-lambda', '0.4',
+                                 '-mix-lm2', '{}/{}_4.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda2', '0.3',
+                                 '-mix-lm3', '{}/{}_3.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda3', '0.2',
+                                 '-mix-lm4', '{}/{}_2.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda4', '0.06',
+                                 '-mix-lm5', '{}/{}_1.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda5', '0.04',
+                                 '-ppl', query_file],
                                  stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
         #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
         #    print(incipit_number, file=external_file)
