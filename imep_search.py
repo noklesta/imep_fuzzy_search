@@ -34,7 +34,7 @@ def application(environ, start_response):
     query_id = uuid.uuid4()
 
     query_file = "/tmp/imep_query_{}.txt".format(query_id)
-    query_model_file = "/tmp/imep_query_{}.lm".format(query_id)
+    query_model_file = "/tmp/imep_query_{}".format(query_id)
 
     # Separate the characters in the query by spaces and the words by '<w>' tags, and write it to file
     with open(query_file, 'w', encoding='utf-8') as f:
@@ -42,20 +42,38 @@ def application(environ, start_response):
         query = "<w> " + " <w> ".join(lines) + " <w>"
         f.write(query)
 
-    # In a single invocation, ngram is able to run several texts against a single language model, but not a single 
+    # In a single invocation, ngram is able to run several texts against a single language model, but not a single
     # text against several language models. Since invoking the program once for each of many thousand language
-    # models takes a lot of time, we do it the other way first, i.e., create a model for the query text and run all 
+    # models takes a lot of time, we do it the other way first, i.e., create a model for the query text and run all
     # incipits against that single model. However, doing it that way yields inferior results, so we select the best
     # X candidates from that run and run the more accurate process (i.e., running the query text against each incipit
     # model) only on those to remove poor results.
 
-    # First create a model from the query text
-    subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '5', '-no-sos', '-no-eos', '-wbdiscount', 
-                   '-text', query_file, '-lm', query_model_file], universal_newlines=True)
+    # First create a series of models from the query text
+    #subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '5', '-no-sos', '-no-eos', '-wbdiscount',
+    #               '-text', query_file, '-lm', query_model_file], universal_newlines=True)
+    subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '5', '-no-sos', '-no-eos', '-wbdiscount',
+                   '-text', query_file, '-lm', "{}_5.lm".format(query_model_file)], universal_newlines=True)
+    subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '4', '-no-sos', '-no-eos', '-wbdiscount',
+                   '-text', query_file, '-lm', "{}_4.lm".format(query_model_file)], universal_newlines=True)
+    subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '3', '-no-sos', '-no-eos', '-wbdiscount',
+                   '-text', query_file, '-lm', "{}_3.lm".format(query_model_file)], universal_newlines=True)
+    subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '2', '-no-sos', '-no-eos', '-wbdiscount',
+                   '-text', query_file, '-lm', "{}_2.lm".format(query_model_file)], universal_newlines=True)
+    subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '1', '-no-sos', '-no-eos', '-wbdiscount',
+                   '-text', query_file, '-lm', "{}_1.lm".format(query_model_file)], universal_newlines=True)
 
-    # Then run all incipits against the query model
-    process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', query_model_file,
-                             '-no-sos', '-no-eos', '-debug', '1', '-ppl', '/tekstlab/imep/incipits.text'], 
+    # Then run all incipits against the query models
+    #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', query_model_file,
+    #                         '-no-sos', '-no-eos', '-debug', '1', '-ppl', '/tekstlab/imep/incipits.text'],
+    #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
+    process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos',
+                             '-lm', '{}_5.lm'.format(query_model_file), '-lambda', '0.4',
+                             '-mix-lm2', '{}_4.lm'.format(query_model_file), 'mix-lambda2', '0.3',
+                             '-mix-lm3', '{}_3.lm'.format(query_model_file), 'mix-lambda3', '0.2',
+                             '-mix-lm4', '{}_2.lm'.format(query_model_file), 'mix-lambda4', '0.06',
+                             '-mix-lm5', '{}_1.lm'.format(query_model_file), 'mix-lambda5', '0.04',
+                             '-debug', '1', '-ppl', '/tekstlab/imep/incipits.text'],
                              stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
 
     output_lines = process.stdout.splitlines()
@@ -79,7 +97,7 @@ def application(environ, start_response):
     def process_chunk(chunk_number, chunk):
         ppl1 = re.search(ppl1_pattern, chunk[2]).group(1)
 
-        if ppl1 == 'undefined': 
+        if ppl1 == 'undefined':
             # If the perplexity is undefined, set it to be a really high number so it won't be selected
             ppl1 = '10000.0'
 
@@ -148,7 +166,7 @@ def application(environ, start_response):
         #    external_file.close()
         # Append a tuple containing the incipit number and ppl1 value from the proper matching of the query text against this incipit
         candidates_with_proper_pp1s.append((incipit_number, m.group(1)))
-        
+     
     # Sort the candidates based on their proper ppl1 values
     candidates_with_proper_pp1s.sort(key=lambda elm: float(elm[1]))
 
@@ -163,6 +181,10 @@ def application(environ, start_response):
     start_response(status, response_headers)
 
     os.remove(query_file)
-    os.remove(query_model_file)
+    os.remove('{}_1.lm'.format(query_model_file))
+    os.remove('{}_2.lm'.format(query_model_file))
+    os.remove('{}_3.lm'.format(query_model_file))
+    os.remove('{}_4.lm'.format(query_model_file))
+    os.remove('{}_5.lm'.format(query_model_file))
 
     return [output]
