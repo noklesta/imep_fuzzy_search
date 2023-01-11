@@ -24,8 +24,14 @@ def application(environ, start_response):
     status = '200 OK'
     response_headers = [('Content-type', 'text/plain')]
 
-    query = urllib.parse.unquote_plus(environ['QUERY_STRING'])
-    if len(query) == 0:
+    query_string = urllib.parse.unquote_plus(environ['QUERY_STRING'])
+    #with open("/tmp/anders.txt", "a", encoding='utf-8') as f:
+    #    print(f'query: {query}', file=f)
+    m = re.match('query=(.+)&type=(.+)', query_string)
+    if m:
+        query = m.group(1)
+        prose_type = m.group(2)
+    else:
         status = '500 Internal Server Error'
         output = b"Missing query!"
         start_response(status, response_headers)
@@ -64,16 +70,13 @@ def application(environ, start_response):
                    '-text', query_file, '-lm', "{}_1.lm".format(query_model_file)], universal_newlines=True)
 
     # Then run all incipits against the query models
-    #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', query_model_file,
-    #                         '-no-sos', '-no-eos', '-debug', '1', '-ppl', '/tekstlab/imep/incipits.text'],
-    #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
-    process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos',
+    process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos', '-nonevents', NONEVENTS_FILE,
                              '-lm', '{}_5.lm'.format(query_model_file), '-lambda', '0.4',
                              '-mix-lm2', '{}_4.lm'.format(query_model_file), 'mix-lambda2', '0.3',
                              '-mix-lm3', '{}_3.lm'.format(query_model_file), 'mix-lambda3', '0.2',
                              '-mix-lm4', '{}_2.lm'.format(query_model_file), 'mix-lambda4', '0.06',
                              '-mix-lm5', '{}_1.lm'.format(query_model_file), 'mix-lambda5', '0.04',
-                             '-debug', '1', '-ppl', '/tekstlab/imep/incipits.text'],
+                             '-debug', '1', '-ppl', '/tekstlab/imep/{}s.text'.format(prose_type)],
                              stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
 
     output_lines = process.stdout.splitlines()
@@ -106,7 +109,7 @@ def application(environ, start_response):
     blank_pattern = re.compile('\s+')
     word_sep_pattern = re.compile('<w>')
 
-    # Checks the length of a line in incipits.text
+    # Checks the length of a line in incipits.text or explicits.text
     def long_enough(candidate):
         cleaned_text = re.sub(word_sep_pattern, ' ', re.sub(blank_pattern, '', replace_entities(candidate))).strip()
         if len(cleaned_text) < 15:
@@ -116,7 +119,7 @@ def application(environ, start_response):
         else: return True
 
 
-    with open('/tekstlab/imep/incipits.text', 'r', encoding='utf-8') as f:
+    with open('/tekstlab/imep/{}s.text'.format(prose_type), 'r', encoding='utf-8') as f:
         incipit_lines = f.readlines()
 
     incipit_numbers_and_pp1s = [ process_chunk(chunk_index + 1, chunk)
@@ -135,12 +138,18 @@ def application(environ, start_response):
     #        print(candidate, file=external_file)
     #    external_file.close()
 
+    # Get the number of incipits, which will also be the number (and db index) of the first explicit.
+    # NOTE: Make sure there are no additional, empty lines in incipits.text!
+    with open('/tekstlab/imep/incipits.text', 'r', encoding='utf-8') as f:
+        first_explicit_number = len(f.readlines())
+
     # Now run the query text against each of the NUM_CANDIDATES incipits with the lowest perplexity value
     # in the reversed matching process above, and return the NUM_SELECTIONS ones with the lowest value
     # when we do the 'proper' matching.
     candidates_with_proper_pp1s = []
     for incipit_info in candidates:
-        incipit_number = incipit_info[0]
+        # If we are looking for explicits, we need to adjust the number by the offset of the first explicit in the database
+        incipit_number = incipit_info[0] + first_explicit_number if prose_type == 'explicit' else incipit_info[0]
         #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.bin.lm'.format(MODEL_DIR, incipit_number),
         #                         '-no-sos', '-no-eos', '-ppl', query_file],
         #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
