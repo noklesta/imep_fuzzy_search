@@ -42,10 +42,10 @@ def application(environ, start_response):
     query_file = "/tmp/imep_query_{}.txt".format(query_id)
     query_model_file = "/tmp/imep_query_{}".format(query_id)
 
-    # Separate the characters in the query by spaces and the words by '<w>' tags, and write it to file
+    # Separate the characters in the query by spaces and the words by '<w/>' tags, and write it to file
     with open(query_file, 'w', encoding='utf-8') as f:
         lines = map(lambda word: " ".join(word), re.sub('query=', '', query).split())
-        query = "<w> " + " <w> ".join(lines) + " <w>"
+        query = "<w/> " + " <w/> ".join(lines) + " <w/>"
         f.write(query)
 
     # In a single invocation, ngram is able to run several texts against a single language model, but not a single
@@ -71,11 +71,11 @@ def application(environ, start_response):
 
     # Then run all incipits against the query models
     process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos', '-nonevents', NONEVENTS_FILE,
-                             '-lm', '{}_5.lm'.format(query_model_file), '-lambda', '0.4',
-                             '-mix-lm2', '{}_4.lm'.format(query_model_file), 'mix-lambda2', '0.3',
-                             '-mix-lm3', '{}_3.lm'.format(query_model_file), 'mix-lambda3', '0.2',
-                             '-mix-lm4', '{}_2.lm'.format(query_model_file), 'mix-lambda4', '0.06',
-                             '-mix-lm5', '{}_1.lm'.format(query_model_file), 'mix-lambda5', '0.04',
+                             '-lm', '{}_5.lm'.format(query_model_file), '-lambda', '0.5',
+                             '-mix-lm2', '{}_4.lm'.format(query_model_file), 'mix-lambda2', '0.4',
+                             '-mix-lm3', '{}_3.lm'.format(query_model_file), 'mix-lambda3', '0.1',
+                             '-mix-lm4', '{}_2.lm'.format(query_model_file), 'mix-lambda4', '0.07',
+                             '-mix-lm5', '{}_1.lm'.format(query_model_file), 'mix-lambda5', '0.03',
                              '-debug', '1', '-ppl', '/tekstlab/imep/{}s.text'.format(prose_type)],
                              stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
 
@@ -107,7 +107,7 @@ def application(environ, start_response):
         return (chunk_number, ppl1)
 
     blank_pattern = re.compile('\s+')
-    word_sep_pattern = re.compile('<w>')
+    word_sep_pattern = re.compile('<w/>')
 
     # Checks the length of a line in incipits.text or explicits.text
     def long_enough(candidate):
@@ -157,11 +157,11 @@ def application(environ, start_response):
         #                         '-no-sos', '-no-eos', '-ppl', query_file],
         #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
         process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos', '-nonevents', NONEVENTS_FILE,
-                                 '-lm', '{}/{}_5.lm'.format(MODEL_DIR, incipit_number), '-lambda', '0.4',
-                                 '-mix-lm2', '{}/{}_4.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda2', '0.3',
-                                 '-mix-lm3', '{}/{}_3.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda3', '0.2',
-                                 '-mix-lm4', '{}/{}_2.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda4', '0.06',
-                                 '-mix-lm5', '{}/{}_1.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda5', '0.04',
+                                 '-lm', '{}/{}_5.lm'.format(MODEL_DIR, incipit_number), '-lambda', '0.5',
+                                 '-mix-lm2', '{}/{}_4.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda2', '0.4',
+                                 '-mix-lm3', '{}/{}_3.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda3', '0.1',
+                                 '-mix-lm4', '{}/{}_2.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda4', '0.07',
+                                 '-mix-lm5', '{}/{}_1.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda5', '0.03',
                                  '-ppl', query_file],
                                  stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
         #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
