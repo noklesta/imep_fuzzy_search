@@ -1,4 +1,5 @@
 import os
+import os.path
 import re
 import subprocess
 import sys
@@ -15,7 +16,8 @@ NUM_SELECTIONS = 20
 SRLIM_DIR = '/tekstlab/imep/srilm-1.7.3/bin/i686-m64/'
 
 #MODEL_DIR = '/tekstlab/imep/binary_models/incipits'
-MODEL_DIR = '/tekstlab/imep/models'
+#MODEL_DIR = '/tekstlab/imep/models'
+MODEL_DIR = '/tekstlab/imep/models/without_short'
 NONEVENTS_FILE = '/tekstlab/imep/nonevents.text'
 
 ppl1_pattern = re.compile('ppl1=\s*(\S+)')
@@ -150,36 +152,40 @@ def application(environ, start_response):
     for incipit_info in candidates:
         # If we are looking for explicits, we need to adjust the number by the offset of the first explicit in the database
         incipit_number = incipit_info[0] + first_explicit_number if prose_type == 'explicit' else incipit_info[0]
-        #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.bin.lm'.format(MODEL_DIR, incipit_number),
-        #                         '-no-sos', '-no-eos', '-ppl', query_file],
-        #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
-        #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.lm'.format(MODEL_DIR, incipit_number),
-        #                         '-no-sos', '-no-eos', '-ppl', query_file],
-        #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
-        process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos', '-nonevents', NONEVENTS_FILE,
-                                 '-lm', '{}/{}_5.lm'.format(MODEL_DIR, incipit_number), '-lambda', '0.5',
-                                 '-mix-lm2', '{}/{}_4.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda2', '0.4',
-                                 '-mix-lm3', '{}/{}_3.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda3', '0.1',
-                                 '-mix-lm4', '{}/{}_2.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda4', '0.07',
-                                 '-mix-lm5', '{}/{}_1.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda5', '0.03',
-                                 '-ppl', query_file],
-                                 stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
-        #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
-        #    print(incipit_number, file=external_file)
-        #    print(process.stdout.splitlines(), file=external_file)
-        #    external_file.close()
-        #if len(process.stdout.splitlines()) >= 2:
-        m = re.search(ppl1_pattern, process.stdout.splitlines()[1])
-        #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
-        #    print(f'{incipit_number}, {m.group(1)}', file=external_file)
-        #    external_file.close()
-        # Append a tuple containing the incipit number and ppl1 value from the proper matching of the query text against this incipit
-        candidates_with_proper_pp1s.append((incipit_number, m.group(1)))
+
+        # Don't try to run the query text against a model unless the model actually exists,
+        # which is not the case for very short incipits/explicits (since they are not in fact actual incipits or explicits)
+        if os.path.isfile('{}/{}_1.lm'.format(MODEL_DIR, incipit_number)):
+            #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.bin.lm'.format(MODEL_DIR, incipit_number),
+            #                         '-no-sos', '-no-eos', '-ppl', query_file],
+            #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
+            #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.lm'.format(MODEL_DIR, incipit_number),
+            #                         '-no-sos', '-no-eos', '-ppl', query_file],
+            #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
+            process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos', '-nonevents', NONEVENTS_FILE,
+                                     '-lm', '{}/{}_5.lm'.format(MODEL_DIR, incipit_number), '-lambda', '0.5',
+                                     '-mix-lm2', '{}/{}_4.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda2', '0.4',
+                                     '-mix-lm3', '{}/{}_3.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda3', '0.1',
+                                     '-mix-lm4', '{}/{}_2.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda4', '0.07',
+                                     '-mix-lm5', '{}/{}_1.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda5', '0.03',
+                                     '-ppl', query_file],
+                                     stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
+            #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
+            #    print(incipit_number, file=external_file)
+            #    print(process.stdout.splitlines(), file=external_file)
+            #    external_file.close()
+            #if len(process.stdout.splitlines()) >= 2:
+            m = re.search(ppl1_pattern, process.stdout.splitlines()[1])
+            #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
+            #    print(f'{incipit_number}, {m.group(1)}', file=external_file)
+            #    external_file.close()
+            # Append a tuple containing the incipit number and ppl1 value from the proper matching of the query text against this incipit
+            candidates_with_proper_pp1s.append((incipit_number, m.group(1)))
      
     # Sort the candidates based on their proper ppl1 values
     candidates_with_proper_pp1s.sort(key=lambda elm: float(elm[1]))
 
-    #with open("/tmp/anders.txt", "w", encoding='utf-8') as external_file:
+    #with open("/tmp/anders2.txt", "w", encoding='utf-8') as external_file:
     #    for candidate in candidates_with_proper_pp1s:
     #        print(candidate, file=external_file)
 
