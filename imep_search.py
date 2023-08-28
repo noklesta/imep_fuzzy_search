@@ -10,7 +10,7 @@ import uuid
 # Implements fuzzy search for the Index of Middle English Prose (http://imep.lib.cam.ac.uk/incipits/)
 #######################################################################################################
 
-NUM_CANDIDATES = 100
+NUM_CANDIDATES = 300
 NUM_SELECTIONS = 20
 
 SRLIM_DIR = '/tekstlab/imep/srilm-1.7.3/bin/i686-m64/'
@@ -190,6 +190,9 @@ def application(environ, start_response):
     #        print(candidate, file=external_file)
 
     selected = list(map(lambda candidate: candidate[0], candidates_with_proper_pp1s))[:NUM_SELECTIONS]
+    #step1_candidates_without_short = filter(lambda candidate: os.path.isfile('{}/{}_1.lm'.format(MODEL_DIR, candidate[0])), candidates)
+    #selected = list(map(lambda candidate: candidate[0], step1_candidates_without_short))[:NUM_SELECTIONS]
+    #selected = list(map(lambda candidate: candidate[0], candidates))[:NUM_SELECTIONS]
 
     output = bytes(",".join(map(lambda i: str(i), selected)), "utf-8")
 
