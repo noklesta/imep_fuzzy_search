@@ -15,8 +15,6 @@ NUM_SELECTIONS = 20
 
 SRLIM_DIR = '/tekstlab/imep/srilm-1.7.3/bin/i686-m64/'
 
-#MODEL_DIR = '/tekstlab/imep/binary_models/incipits'
-#MODEL_DIR = '/tekstlab/imep/models'
 MODEL_DIR = '/tekstlab/imep/models/without_short'
 
 ppl1_pattern = re.compile('ppl1=\s*(\S+)')
@@ -46,9 +44,6 @@ def application(environ, start_response):
         lines = map(lambda word: " ".join(word), re.sub('query=', '', query).split())
         query = "<w/> " + " <w/> ".join(lines) + " <w/>"
 
-        #with open("/tmp/anders.txt", "a", encoding='utf-8') as f2:
-        #    print(f'query: {query}', file=f2)
-
         nonevents_file = 'nonevents_explicits.text' if prose_type == 'explicit' else 'nonevents_incipits.text'
         with open('/tekstlab/imep/' + nonevents_file, 'r', encoding='utf-8') as nonevents:
             ignored = nonevents.readlines()
@@ -67,8 +62,6 @@ def application(environ, start_response):
     # model) only on those to remove poor results.
 
     # First create a series of models from the query text
-    #subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '5', '-no-sos', '-no-eos', '-wbdiscount',
-    #               '-text', query_file, '-lm', query_model_file], universal_newlines=True)
     subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '5', '-no-sos', '-no-eos', '-wbdiscount',
                    '-text', query_file, '-lm', "{}_5.lm".format(query_model_file)], universal_newlines=True)
     subprocess.run([SRLIM_DIR + 'ngram-count', '-order', '4', '-no-sos', '-no-eos', '-wbdiscount',
@@ -124,8 +117,6 @@ def application(environ, start_response):
     def long_enough(candidate):
         cleaned_text = re.sub(word_sep_pattern, ' ', re.sub(blank_pattern, '', replace_entities(candidate))).strip()
         if len(cleaned_text) < 15:
-            #with open("/tmp/anders.txt", "a", encoding='utf-8') as f:
-            #    print(f'cand: {candidate}, cleaned: AAA{cleaned_text}BBB', file=f)
             return False
         else: return True
 
@@ -143,12 +134,6 @@ def application(environ, start_response):
     # Select the best candidates for use in the proper testing procedure
     candidates = incipit_numbers_and_pp1s[:NUM_CANDIDATES]
 
-    #with open("/tmp/anders_log.txt", "w", encoding='utf-8') as external_file:
-    #    print('reverse:', file=external_file)
-    #    for candidate in candidates:
-    #        print(candidate, file=external_file)
-    #    external_file.close()
-
     # Get the number of incipits, which will also be the number (and db index) of the first explicit.
     # NOTE: Make sure there are no additional, empty lines in incipits.text!
     with open('/tekstlab/imep/incipits.text', 'r', encoding='utf-8') as f:
@@ -165,12 +150,6 @@ def application(environ, start_response):
         # Don't try to run the query text against a model unless the model actually exists,
         # which is not the case for very short incipits/explicits (since they are not in fact actual incipits or explicits)
         if os.path.isfile('{}/{}_1.lm'.format(MODEL_DIR, incipit_number)):
-            #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.bin.lm'.format(MODEL_DIR, incipit_number),
-            #                         '-no-sos', '-no-eos', '-ppl', query_file],
-            #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
-            #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.lm'.format(MODEL_DIR, incipit_number),
-            #                         '-no-sos', '-no-eos', '-ppl', query_file],
-            #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
             process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos',
                                      '-lm', '{}/{}_5.lm'.format(MODEL_DIR, incipit_number), '-lambda', '0.60',
                                      '-mix-lm2', '{}/{}_4.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda2', '0.45',
@@ -179,29 +158,14 @@ def application(environ, start_response):
                                      '-mix-lm5', '{}/{}_1.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda5', '0.01',
                                      '-ppl', query_file],
                                      stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
-            #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
-            #    print(incipit_number, file=external_file)
-            #    print(process.stdout.splitlines(), file=external_file)
-            #    external_file.close()
-            #if len(process.stdout.splitlines()) >= 2:
             m = re.search(ppl1_pattern, process.stdout.splitlines()[1])
-            #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
-            #    print(f'{incipit_number}, {m.group(1)}', file=external_file)
-            #    external_file.close()
             # Append a tuple containing the incipit number and ppl1 value from the proper matching of the query text against this incipit
             candidates_with_proper_pp1s.append((incipit_number, m.group(1)))
      
     # Sort the candidates based on their proper ppl1 values
     candidates_with_proper_pp1s.sort(key=lambda elm: float(elm[1]))
 
-    #with open("/tmp/anders2.txt", "w", encoding='utf-8') as external_file:
-    #    for candidate in candidates_with_proper_pp1s:
-    #        print(candidate, file=external_file)
-
     selected = list(map(lambda candidate: candidate[0], candidates_with_proper_pp1s))[:NUM_SELECTIONS]
-    #step1_candidates_without_short = filter(lambda candidate: os.path.isfile('{}/{}_1.lm'.format(MODEL_DIR, candidate[0])), candidates)
-    #selected = list(map(lambda candidate: candidate[0], step1_candidates_without_short))[:NUM_SELECTIONS]
-    #selected = list(map(lambda candidate: candidate[0], candidates))[:NUM_SELECTIONS]
 
     output = bytes(",".join(map(lambda i: str(i), selected)), "utf-8")
 
