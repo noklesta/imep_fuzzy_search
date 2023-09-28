@@ -18,7 +18,6 @@ SRLIM_DIR = '/tekstlab/imep/srilm-1.7.3/bin/i686-m64/'
 #MODEL_DIR = '/tekstlab/imep/binary_models/incipits'
 #MODEL_DIR = '/tekstlab/imep/models'
 MODEL_DIR = '/tekstlab/imep/models/without_short'
-NONEVENTS_FILE = '/tekstlab/imep/nonevents.text'
 
 ppl1_pattern = re.compile('ppl1=\s*(\S+)')
 
@@ -27,8 +26,6 @@ def application(environ, start_response):
     response_headers = [('Content-type', 'text/plain')]
 
     query_string = urllib.parse.unquote_plus(environ['QUERY_STRING'])
-    #with open("/tmp/anders.txt", "a", encoding='utf-8') as f:
-    #    print(f'query: {query}', file=f)
     m = re.match('query=(.+)&type=(.+)', query_string)
     if m:
         query = m.group(1)
@@ -48,7 +45,19 @@ def application(environ, start_response):
     with open(query_file, 'w', encoding='utf-8') as f:
         lines = map(lambda word: " ".join(word), re.sub('query=', '', query).split())
         query = "<w/> " + " <w/> ".join(lines) + " <w/>"
-        f.write(query)
+
+        #with open("/tmp/anders.txt", "a", encoding='utf-8') as f2:
+        #    print(f'query: {query}', file=f2)
+
+        nonevents_file = 'nonevents_explicits.text' if prose_type == 'explicit' else 'nonevents_incipits.text'
+        with open('/tekstlab/imep/' + nonevents_file, 'r', encoding='utf-8') as nonevents:
+            ignored = nonevents.readlines()
+        # Replace all sequences from the nonevents.txt file by a single <w/>
+        # (so that each replacement retains the word boundary for subsequent replacements)
+        for iw in ignored:
+            query = re.sub(iw.rstrip(), '<w/>', query, flags=re.I)
+        # Finally, remove any sequences of multiple <w/> tags with a single one
+        f.write(re.sub(r'<w/>(?:\s*<w/>)+', '<w/>', query))
 
     # In a single invocation, ngram is able to run several texts against a single language model, but not a single
     # text against several language models. Since invoking the program once for each of many thousand language
