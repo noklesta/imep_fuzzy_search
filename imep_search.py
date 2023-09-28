@@ -10,7 +10,7 @@ import uuid
 # Implements fuzzy search for the Index of Middle English Prose (http://imep.lib.cam.ac.uk/incipits/)
 #######################################################################################################
 
-NUM_CANDIDATES = 300
+NUM_CANDIDATES = 200
 NUM_SELECTIONS = 20
 
 SRLIM_DIR = '/tekstlab/imep/srilm-1.7.3/bin/i686-m64/'
