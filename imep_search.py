@@ -81,12 +81,12 @@ def application(environ, start_response):
                    '-text', query_file, '-lm', "{}_1.lm".format(query_model_file)], universal_newlines=True)
 
     # Then run all incipits against the query models
-    process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos', '-nonevents', NONEVENTS_FILE,
-                             '-lm', '{}_5.lm'.format(query_model_file), '-lambda', '0.5',
-                             '-mix-lm2', '{}_4.lm'.format(query_model_file), 'mix-lambda2', '0.4',
-                             '-mix-lm3', '{}_3.lm'.format(query_model_file), 'mix-lambda3', '0.1',
-                             '-mix-lm4', '{}_2.lm'.format(query_model_file), 'mix-lambda4', '0.07',
-                             '-mix-lm5', '{}_1.lm'.format(query_model_file), 'mix-lambda5', '0.03',
+    process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos',
+                             '-lm', '{}_5.lm'.format(query_model_file), '-lambda', '0.6',
+                             '-mix-lm2', '{}_4.lm'.format(query_model_file), '-mix-lambda2', '0.45',
+                             '-mix-lm3', '{}_3.lm'.format(query_model_file), '-mix-lambda3', '0.2',
+                             '-mix-lm4', '{}_2.lm'.format(query_model_file), '-mix-lambda4', '0.04',
+                             '-mix-lm5', '{}_1.lm'.format(query_model_file), '-mix-lambda5', '0.01',
                              '-debug', '1', '-ppl', '/tekstlab/imep/{}s.text'.format(prose_type)],
                              stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
 
@@ -171,12 +171,12 @@ def application(environ, start_response):
             #process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-lm', '{}/{}.lm'.format(MODEL_DIR, incipit_number),
             #                         '-no-sos', '-no-eos', '-ppl', query_file],
             #                         stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
-            process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos', '-nonevents', NONEVENTS_FILE,
-                                     '-lm', '{}/{}_5.lm'.format(MODEL_DIR, incipit_number), '-lambda', '0.5',
-                                     '-mix-lm2', '{}/{}_4.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda2', '0.4',
-                                     '-mix-lm3', '{}/{}_3.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda3', '0.1',
-                                     '-mix-lm4', '{}/{}_2.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda4', '0.07',
-                                     '-mix-lm5', '{}/{}_1.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda5', '0.03',
+            process = subprocess.run([SRLIM_DIR + 'ngram', '-order', '5', '-no-sos', '-no-eos',
+                                     '-lm', '{}/{}_5.lm'.format(MODEL_DIR, incipit_number), '-lambda', '0.60',
+                                     '-mix-lm2', '{}/{}_4.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda2', '0.45',
+                                     '-mix-lm3', '{}/{}_3.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda3', '0.2',
+                                     '-mix-lm4', '{}/{}_2.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda4', '0.04',
+                                     '-mix-lm5', '{}/{}_1.lm'.format(MODEL_DIR, incipit_number), '-mix-lambda5', '0.01',
                                      '-ppl', query_file],
                                      stdout=subprocess.PIPE, universal_newlines=True, encoding='UTF-8')
             #with open("/tmp/anders.txt", "a", encoding='utf-8') as external_file:
